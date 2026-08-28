@@ -27,9 +27,9 @@ ebr_system_id:          DB 'FAT12   '
 
 main:
     MOV AX, 0
-    MOV DS,AX
-    MOV ES,AX
-    MOV SS,AX
+    MOV DS, AX
+    MOV ES, AX
+    MOV SS, AX
 
     MOV SP, 0x7C00
 
@@ -41,31 +41,140 @@ main:
 
     MOV SI, os_boot_msg
     CALL print
+
+    ; Skip past junk on disk to get to root dir
+    MOV AX, [bdb_sectors_per_fat]
+    MOV BL, [bdb_fat_count]
+    XOR BH, BH
+    MUL BX
+    ADD AX, [bdb_reserved_sectors] ;LBA of root dir
+    PUSH AX
+
+    MOV AX, [bdb_dir_entries_count]
+    SHL AX, 5
+    XOR DX, DX
+    DIV word [bdb_bytes_per_sector]
+
+    TEST DX, DX
+    JZ root_dir_after
+    INC AX
+
+root_dir_after:
+    MOV CL, AL
+    POP AX
+    MOV DL, [ebr_drive_number]
+    MOV BX, buffer
+    CALL disk_read
+
+    XOR BX, BX
+    MOV DI buffer
+
+search_kernel:
+    MOV SI, file_kernel_bin
+    MOV CX, 11
+    PUSH DI
+    REPE CMPSB
+    POP DI
+    JE found_kernel
+
+    ADD DI, 32
+    INC BX
+    CMP BX, [bdb_dir_entries_count]
+    JL search_kernel
+
+    JMP kernel_not_found
+
+kernel_not_found:
+    MOV SI, msg_kernel_not_found
+    CALL print
+
+    HLT
+    JMP halt
+
+found_kernel:
+    MOV AX, [DI+26]
+    MOV [kernel_cluster], AX
+
+    MOV AX, [bdb_reserved_sectors]
+    MOV BX, buffer
+    MOV CL, [bdb_sectors_per_fat]
+    MOV DL, [ebr_drive_number]
+
+    CALL disk_read
+
+    MOV BX, kernel_load_segment
+    MOV ES, BX
+    MOV BX, kernel_load_offset
+
+load_kernel_loop:
+    MOV AX, [kernel_cluster]
+    ADD AX, 31
+    MOV CL, 1
+    MOV DL, [ebr_drive_number]
+
+    CALL disk_read
+
+    ADD BX, [bdb_bytes_per_sector]
+
+    MOV AX, [kernel_cluster]
+    MOV CX, 3
+    MUL CX
+    MOV CX, 2
+    DIV CX
+
+    MOV SI, buffer
+    ADD SI, AX
+    MOV AX, [DS:SI]
+
+    TEST DX, DX
+    JZ even
+
+odd:
+    SHR AX, 4
+    JMP next_cluster_after
+even:
+    AND AX, 0x0FFF
+
+next_cluster_after:
+    CMP AX, 0x0FF8
+    JAE read_finish
+
+    MOV [kernel_cluster], AX
+    JMP load_kernel_loop
+
+read_finish:
+    MOV DL, [ebr_drive_number]
+    MOV AX, kernel_load_segment
+    MOV DS, AX
+    MOV ES, AX
+
+    JMP kernel_load_segment:kernel_load_offset
+
     HLT
 
 halt:
     JMP halt
 
-;Input: LBA index in AX
-;CX [bits 0-5]: sector number
-;CX [bits 6-15]: cylinder
-;DH: head
+; Input: LBA index in AX
+; Output: CX [bits 0-5]: Sector number
+; Output: CX [bits 6-15]: Cylinder
+; Output: DH: Head
 lba_to_chs:
     PUSH AX
     PUSH DX
 
     XOR DX, DX
     DIV word [bdb_sectors_per_track]
-    INC DX ;Sector
+    INC DX ; Sector
     MOV CX, DX
 
     XOR DX, DX
     DIV word [bdb_heads]
 
-    MOV DH, DL ;Head
+    MOV DH, DL ; Head
     MOV CH, AL
     SHL AH, 6
-    OR CL, AH ;Cylinder
+    OR CL, AH ; Cylinder
 
     POP AX
     MOV DL,AL
@@ -144,8 +253,16 @@ done_print:
     
     RET
 
-os_boot_msg: DB 'OS load sucessful.',0x0D,0x0A,0
+os_boot_msg: DB 'Loading...',0x0D,0x0A,0
 read_failure: DB 'Failed to read disk.',0x0D,0x0A,0
+file_kernel_bin DB 'KERNEL  BIN'
+msg_kernel_not_found DB 'KERNEL.BIN not found!'
+kernel_cluster DW 0
+
+kernel_load_segment EQU 0x2000
+kernel_load_offset EQU 0
 
 TIMES 510-($-$$) DB 0
 DW 0AA55h
+
+buffer:

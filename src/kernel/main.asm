@@ -1,14 +1,8 @@
-ORG 0x7C00
+ORG 0x0
 BITS 16
 
 main:
-    MOV AX,0
-    MOV DS,AX
-    MOV ES,AX
-    MOV SS,AX
-
-    MOV SP,0x7C00
-    MOV SI,os_boot_msg
+    MOV SI, os_boot_msg
     CALL print
     HLT
 
@@ -22,11 +16,11 @@ print:
 
 print_loop:
     LODSB
-    OR AL,AL
+    OR AL, AL
     JZ done_print
 
-    MOV AH,0x0E
-    MOV BH,0
+    MOV AH, 0x0E
+    MOV BH, 0
     INT 0x10
 
     JMP print_loop
@@ -36,7 +30,5 @@ done_print:
     POP AX
     POP SI
     RET
-os_boot_msg: DB 'OS load sucessful.',0x0D,0x0A,0
 
-TIMES 510-($-$$) DB 0
-DW 0AA55h
+os_boot_msg: DB 'OS boot sucessful.',0x0D,0x0A,0
