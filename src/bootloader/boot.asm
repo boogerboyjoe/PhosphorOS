@@ -61,7 +61,7 @@ root_dir_after:
     CALL disk_read
 
     XOR BX, BX
-    MOV DI buffer
+    MOV DI, buffer
 
 search_kernel:
     MOV SI, file_kernel_bin
