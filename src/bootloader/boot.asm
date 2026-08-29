@@ -33,12 +33,6 @@ main:
 
     MOV SP, 0x7C00
 
-    MOV [ebr_drive_number], DL
-    MOV AX, 1
-    MOV CL, 1
-    MOV BX, 0x7E00
-    CALL disk_read
-
     MOV SI, os_boot_msg
     CALL print
 
