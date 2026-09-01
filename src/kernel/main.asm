@@ -16,7 +16,7 @@ print:
 
 print_loop:
     LODSB
-    OR AL, AL
+    TEST AL, AL
     JZ done_print
 
     MOV AH, 0x0E
