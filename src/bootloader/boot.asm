@@ -1,3 +1,4 @@
+default rel
 bits 64
 
 section .text
@@ -40,3 +41,28 @@ struc EFI_SIMPLE_TEXT_OUTPUT_PROTOCOL
     .EnableCursor      RESQ 1
     .Mode              RESQ 1
 endstruc
+
+_start:
+    MOV [REL System_Table], RDX
+
+    MOV RBX, [REL System_Table]
+    MOV RBX, [RBX + EFI_SYSTEM_TABLE.ConOut]
+    MOV RAX, [RBX + EFI_SIMPLE_TEXT_OUTPUT_PROTOCOL.OutputString]
+    MOV RCX, RBX
+    LEA RDX [REL Msg_Boot_Sucessful]
+    SUB RSP, 40
+    CALL RAX
+    ADD RSP, 40
+    
+    JMP halt
+
+halt:
+    JMP halt
+
+codesize equ $ - $$
+
+section .data
+    Msg_Boot_Sucessful: DW 'Boot Sucessful!',13,10,0
+    System_Table: DQ 0
+
+datasize equ $ - $$
