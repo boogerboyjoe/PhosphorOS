@@ -1,31 +1,27 @@
-ASM=nasm
+ASM = nasm
+QEMU = qemu-system-x86_64
 
-SRC_DIR=src
-BUILD_DIR=build
+SRC = boot.asm
+TARGET_DIR = build
+EFI_FILE = $(TARGET_DIR)/BOOTX64.EFI
+IMG_DIR = $(TARGET_DIR)/disk
+OVMF_CODE = /usr/share/OVMF/OVMF_CODE.fd
 
-#
-# Floppy Image
-#
+NASMFLAGS = -f bin
 
-floppy_image: $(BUILD_DIR)/main.img
-$(BUILD_DIR)/main.img: bootloader kernel
-	dd if=/dev/zero of=$(BUILD_DIR)/main.img bs=512 count=2880
-	mkfs.fat -F 12 -n "TUNGSTENOS" $(BUILD_DIR)/main.img
-	dd if=$(BUILD_DIR)/bootloader.bin of=$(BUILD_DIR)/main.img conv=notrunc
-	mcopy -i $(BUILD_DIR)/main.img $(BUILD_DIR)/kernel.bin "::kernel.bin"
+.PHONY: all clean run
 
-#
-# Bootloader
-#
+all: $(EFI_FILE)
 
-bootloader: $(BUILD_DIR)/bootloader.bin
-$(BUILD_DIR)/bootloader.bin:
-	$(ASM) $(SRC_DIR)/bootloader/boot.asm -f bin -o $(BUILD_DIR)/bootloader.bin
+$(EFI_FILE): $(SRC)
+	@mkdir -p $(TARGET_DIR)
+	$(NASM) $(NASMFLAGS) $(SRC) -o $(EFI_FILE)
 
-#
-# Kernel
-#
+run: $(EFI_FILE)
+	@mkdir -p $(IMG_DIR)/EFI/BOOT
+	cp $(EFI_FILE) $(IMG_DIR)/EFI/BOOT/BOOTX64.EFI
+	$(QEMU) -drive if=pflash,format=raw,readonly=on,file=$(OVMF_CODE) \
+	        -drive file=fat:rw:$(IMG_DIR),format=raw
 
-kernel: $(BUILD_DIR)/kernel.bin
-$(BUILD_DIR)/kernel.bin:
-	$(ASM) $(SRC_DIR)/kernel/main.asm -f bin -o $(BUILD_DIR)/kernel.bin
+clean:
+	rm -rf $(TARGET_DIR)
