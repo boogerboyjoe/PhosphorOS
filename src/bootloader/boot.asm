@@ -13,7 +13,7 @@ endstruc
 struc EFI_SYSTEM_TABLE
     .Hdr                  RESB EFI_TABLE_HEADER_size
     .FirmwareVendor       RESQ 1
-    .FirmwareRevision     RESD 1
+    .FirmwareRevision     RESQ 1
     .ConsoleInHandle      RESQ 1
     .ConIn                RESQ 1
     .ConsoleOutHandle     RESQ 1
