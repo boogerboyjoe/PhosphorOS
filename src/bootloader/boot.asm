@@ -1,9 +1,6 @@
 default rel
+
 bits 64
-
-section .text
-
-global _start
 
 struc EFI_TABLE_HEADER
     .Signature  RESQ 1
@@ -42,22 +39,32 @@ struc EFI_SIMPLE_TEXT_OUTPUT_PROTOCOL
     .Mode              RESQ 1
 endstruc
 
+section .text
+
+global _start
+
 _start:
     MOV [REL System_Table], RDX
 
-    MOV RBX, [REL System_Table]
-    MOV RBX, [RBX + EFI_SYSTEM_TABLE.ConOut]
-    MOV RAX, [RBX + EFI_SIMPLE_TEXT_OUTPUT_PROTOCOL.OutputString]
-    MOV RCX, RBX
-    LEA RDX [REL Msg_Boot_Sucessful]
-    SUB RSP, 40
-    CALL RAX
-    ADD RSP, 40
-    
+    LEA RDX, [REL Msg_Boot_Sucessful]
+    CALL print
+
     JMP halt
 
 halt:
     JMP halt
+
+; RDX is the message input
+print:
+    MOV RBX, [REL System_Table]
+    MOV RBX, [RBX + EFI_SYSTEM_TABLE.ConOut]
+    MOV RAX, [RBX + EFI_SIMPLE_TEXT_OUTPUT_PROTOCOL.OutputString]
+    MOV RCX, RBX
+
+    SUB RSP, 40
+    CALL RAX
+    ADD RSP, 40
+    RET
 
 codesize equ $ - $$
 
