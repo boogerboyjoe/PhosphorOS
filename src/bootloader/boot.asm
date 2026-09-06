@@ -2,6 +2,72 @@ default rel
 
 bits 64
 
+image_start:
+
+dos_header:
+    db 'MZ'
+    times 58 db 0
+    dd pe_header - $$
+
+pe_header:
+    db 'PE', 0, 0
+    dw 0x8664
+    dw 2                     ; Section Ammount
+    dd 0
+    dd 0, 0
+    dw optional_header_end - optional_header
+    dw 0x0206                ; (Executable, 64-bit)
+
+optional_header:
+    dw 0x020B
+    db 0, 0
+    dd codesize              ; Size of code
+    dd datasize              ; Size of data
+    dd 0                     ; Size of BSS
+    dd _start - $$           ; Entry Point address
+    dd section_text_start - $$           ; Base of code address
+    dq 0x00400000            ; Image Base
+    dd 0x1000                ; Section Alignment
+    dd 0x1000                ; File Alignment
+    dw 0, 0, 0, 0
+    dw 6, 0
+    dd 0
+    dd image_size
+    dd headersize
+    dd 0
+    dw 10
+    dw 0
+    dq 0x8000, 0x1000 
+    dq 0x8000, 0x1000
+    dd 0, 16
+    times 16 * 8 db 0
+optional_header_end:
+
+; Maps where .text and .data live in memory
+section_table:
+    db '.text', 0, 0, 0
+    dd codesize
+    dd section_text_start - $$
+    dd codesize
+    dd section_text_start - $$
+    dd 0, 0
+    dw 0, 0
+    dd 0x60000020
+
+    db '.data', 0, 0, 0
+    dd datasize
+    dd section_data_start - $$
+    dd datasize
+    dd section_data_start - $$
+    dd 0, 0
+    dw 0, 0
+    dd 0xC0000040
+
+times 4096 - ($ - image_start) db 0
+headersize equ $ - $$
+
+section_text_start:
+
 struc EFI_TABLE_HEADER
     .Signature  RESQ 1
     .Revision   RESD 1
@@ -66,10 +132,15 @@ print:
     ADD RSP, 40
     RET
 
-codesize equ $ - $$
+align 4096, db 0
+codesize equ $ - section_text_start
 
 section .data
+section_data_start:
+
     Msg_Boot_Sucessful: DW 'Boot Sucessful!',13,10,0
     System_Table: DQ 0
 
-datasize equ $ - $$
+align 4096, db 0
+datasize equ $ - section_data_start
+image_size equ $ - $$
