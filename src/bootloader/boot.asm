@@ -137,7 +137,7 @@ code_end:
 section .data
 data_start:
 
-    Msg_Boot_Sucessful: DW 'Boot Sucessful!',13,10,0
+    Msg_Boot_Sucessful: DW __utf16__ 'Boot Sucessful!',13,10,0
     System_Table: DQ 0
 
 align 4096, db 0
