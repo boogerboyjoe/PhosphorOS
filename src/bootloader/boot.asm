@@ -3,11 +3,11 @@ default rel
 bits 64
 
 image_start:
-
+header_start:
 dos_header:
     db 'MZ'
     times 58 db 0
-    dd pe_header - $$
+    dd pe_header - image_start
 
 pe_header:
     db 'PE', 0, 0
@@ -21,19 +21,19 @@ pe_header:
 optional_header:
     dw 0x020B
     db 0, 0
-    dd codesize              ; Size of code
-    dd datasize              ; Size of data
+    dd code_end - code_start ; Size of code
+    dd data_end - data_start ; Size of data
     dd 0                     ; Size of BSS
-    dd _start - $$           ; Entry Point address
-    dd section_text_start - $$           ; Base of code address
+    dd code_start - image_start ; Entry Point address
+    dd code_start - image_start ; Base of code address
     dq 0x00400000            ; Image Base
     dd 0x1000                ; Section Alignment
     dd 0x1000                ; File Alignment
     dw 0, 0, 0, 0
     dw 6, 0
     dd 0
-    dd image_size
-    dd headersize
+    dd image_end - image_start
+    dd header_end - header_start
     dd 0
     dw 10
     dw 0
@@ -46,27 +46,25 @@ optional_header_end:
 ; Maps where .text and .data live in memory
 section_table:
     db '.text', 0, 0, 0
-    dd codesize
-    dd section_text_start - $$
-    dd codesize
-    dd section_text_start - $$
+    dd code_end - code_start
+    dd code_start - image_start
+    dd code_end - code_start
+    dd code_start - image_start
     dd 0, 0
     dw 0, 0
     dd 0x60000020
 
     db '.data', 0, 0, 0
-    dd datasize
-    dd section_data_start - $$
-    dd datasize
-    dd section_data_start - $$
+    dd data_end - data_start
+    dd data_start - image_start
+    dd data_end - data_start
+    dd data_start - image_start
     dd 0, 0
     dw 0, 0
     dd 0xC0000040
 
 times 4096 - ($ - image_start) db 0
-headersize equ $ - $$
-
-section_text_start:
+header_end:
 
 struc EFI_TABLE_HEADER
     .Signature  RESQ 1
@@ -109,6 +107,7 @@ section .text
 
 global _start
 
+code_start:
 _start:
     MOV [REL System_Table], RDX
 
@@ -133,14 +132,14 @@ print:
     RET
 
 align 4096, db 0
-codesize equ $ - section_text_start
+code_end:
 
 section .data
-section_data_start:
+data_start:
 
     Msg_Boot_Sucessful: DW 'Boot Sucessful!',13,10,0
     System_Table: DQ 0
 
 align 4096, db 0
-datasize equ $ - section_data_start
-image_size equ $ - $$
+data_end:
+image_end:
