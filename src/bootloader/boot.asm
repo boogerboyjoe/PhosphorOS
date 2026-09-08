@@ -2,6 +2,8 @@ default rel
 
 bits 64
 
+section_alignment equ 0x1000
+
 image_start:
 header_start:
 dos_header:
@@ -27,8 +29,8 @@ optional_header:
     dd code_start - image_start ; Entry Point address
     dd code_start - image_start ; Base of code address
     dq 0x00400000            ; Image Base
-    dd 0x1000                ; Section Alignment
-    dd 0x1000                ; File Alignment
+    dd section_alignment     ; Section Alignment
+    dd section_alignment     ; File Alignment
     dw 0, 0, 0, 0
     dw 6, 0
     dd 0
@@ -63,7 +65,7 @@ section_table:
     dw 0, 0
     dd 0xC0000040
 
-times 4096 - ($ - image_start) db 0
+times section_alignment - ($ - image_start) db 0
 header_end:
 
 struc EFI_TABLE_HEADER
@@ -131,7 +133,7 @@ print:
     ADD RSP, 40
     RET
 
-align 4096, db 0
+align section_alignment, db 0
 code_end:
 
 section .data
@@ -140,6 +142,6 @@ data_start:
     Msg_Boot_Sucessful: DW __utf16__ 'Boot Sucessful!',13,10,0
     System_Table: DQ 0
 
-align 4096, db 0
+align section_alignment, db 0
 data_end:
 image_end:
