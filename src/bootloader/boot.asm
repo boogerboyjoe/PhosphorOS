@@ -112,6 +112,7 @@ global _start
 code_start:
 _start:
     MOV [REL System_Table], RDX
+    MOV [REL Image_Handle], RCX
 
     LEA RDX, [REL Msg_Boot_Sucessful]
     CALL print
@@ -139,8 +140,9 @@ code_end:
 section .data
 data_start:
 
-    Msg_Boot_Sucessful: DW __utf16__ 'Boot Sucessful!',13,10,0
+    Msg_Boot_Sucessful: DW __utf16__ 'Bootloader Successful',13,10,0
     System_Table: DQ 0
+    Image_Handle: DQ 0
 
 align section_alignment, db 0
 data_end:
